@@ -14,6 +14,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +25,8 @@ public class TodoService {
   private final S3Client s3Client;
   @Value("${aws.bucketName}")
   private String bucketName;
+  @Value("${image.url.prefix}")
+  private String urlPrefix;
 
 
   public List<Todo> list() {
@@ -36,6 +39,10 @@ public class TodoService {
     if (files != null && files.length > 0) {
       for (MultipartFile file : files) {
         if (file.getSize() > 0) {
+          // todoFile 테이블에 insert
+          dao.insertFile(todo, file.getOriginalFilename());
+
+          // aws에 upload
           String key = "sample1/" + todo.getId() + "/" + file.getOriginalFilename();
           PutObjectRequest request = PutObjectRequest.builder()
                   .key(key)
@@ -49,5 +56,13 @@ public class TodoService {
     }
 
     return count == 1;
+  }
+
+  public List<String> listFiles(Integer todoId) {
+    List<String> list = dao.selectFilesByTodoId(todoId);
+    System.out.println("list = " + list);
+
+    return list.stream().map(e -> urlPrefix + "/" + todoId + "/" + e)
+            .collect(Collectors.toList());
   }
 }

@@ -17,7 +17,10 @@ import java.util.List;
 public interface TodoDao {
 
   @Select("""
-  SELECT * FROM todo ORDER BY id DESC
+  SELECT t.id, t.todo, t.inserted, COUNT(tf.todoId) numOfFiles
+  FROM todoFile tf RIGHT JOIN todo t ON tf.todoId = t.id
+  GROUP BY t.id
+  ORDER BY id DESC
   """)
   public List<Todo> list();
 
@@ -27,4 +30,17 @@ public interface TodoDao {
   """)
   @Options(useGeneratedKeys = true, keyProperty = "id")
   public int insert(Todo todo);
+
+  @Insert("""
+  INSERT INTO todoFile (todoId, name)
+  VALUE (#{todo.id}, #{fileName})
+  """)
+  void insertFile(Todo todo, String fileName);
+
+  @Select("""
+  SELECT name
+  FROM todoFile
+  WHERE todoId = #{todoId}
+  """)
+  List<String> selectFilesByTodoId(Integer todoId);
 }
